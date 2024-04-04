@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag and Drop File Upload</title>
+  <style>
+    #drop-area {
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    #preview-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .preview-image {
+      max-width: 100%;
+      max-height: 100%;
+      position: relative;
+    }
+
+    .preview-image img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .preview-image .close-button {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: #ff0000;
+      color: #fff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #save-button {
+      display: none;
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="drop-area">
+    <p id="drop-text">Drag and drop a file or click to select a file</p>
+    <input type="file" id="file-input" hidden accept="image/*">
+    <div id="preview-container"></div>
+    <button id="save-button">Save Photo</button>
+  </div>
+
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('file-input');
+    const previewContainer = document.getElementById('preview-container');
+    const dropText = document.getElementById('drop-text');
+    const saveButton = document.getElementById('save-button');
+
+    // Prevent default behavior for dragover and drop events
+    ['dragover', 'dragenter'].forEach(event => {
+      dropArea.addEventListener(event, preventDefault, false);
+    });
+
+    function preventDefault(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+
+    // Handle dropped files
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+      preventDefault(e);
+      const file = e.dataTransfer.files[0];
+      handleFile(file);
+    }
+
+    // Handle file selection from input
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      handleFile(file);
+    });
+
+    // Open file dialog when drop area is clicked
+    dropArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    function handleFile(file) {
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = document.createElement('img');
+          img.src = reader.result;
+          const previewImage = document.createElement('div');
+          previewImage.classList.add('preview-image');
+          previewImage.appendChild(img);
+
+          const closeButton = document.createElement('span');
+          closeButton.classList.add('close-button');
+          closeButton.textContent = '×';
+          closeButton.addEventListener('click', () => {
+            previewContainer.removeChild(previewImage);
+            dropText.style.display = 'block';
+            saveButton.style.display = 'none';
+          });
+          previewImage.appendChild(closeButton);
+
+          previewContainer.innerHTML = '';
+          previewContainer.appendChild(previewImage);
+          dropText.style.display = 'none';
+          saveButton.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    saveButton.addEventListener('click', () => {
+      const img = previewContainer.querySelector('img');
+      if (img) {
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('photo', file);
+
+        fetch('save-photo.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          if (response.ok) {
+            alert('Photo saved successfully!');
+          } else {
+            alert('Failed to save photo.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while saving the photo.');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
